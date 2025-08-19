@@ -26,7 +26,6 @@ import { UserService } from '@/services/user.service';
 export class Dashboard implements OnInit {
     constructor() {}
 
-    ngOnInit(): void {
-    }
+    ngOnInit(): void {}
     
 }
