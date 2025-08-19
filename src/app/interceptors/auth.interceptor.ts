@@ -1,9 +1,11 @@
+import { CommonService } from "@/services";
 import { HttpErrorResponse, HttpHandlerFn, HttpRequest, HttpStatusCode } from "@angular/common/http";
 import { inject } from "@angular/core";
 import { Router } from "@angular/router";
 import { catchError, throwError } from "rxjs";
 
 export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
+  const commonService = inject(CommonService);
   const router = inject(Router);
   const newRequest = req.clone({
     headers: req.headers.set('content-type', 'application/json'),
@@ -12,8 +14,10 @@ export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) 
   return next(newRequest).pipe(
    catchError((error: HttpErrorResponse) => {
       if (error.status == HttpStatusCode.Unauthorized || error.status == HttpStatusCode.Forbidden) {
+         commonService.clearStorage();
          router.navigate(['auth/login']);
       } else if (error.status === 0) {
+        commonService.clearStorage();
         router.navigate(['auth/access']);
       }
       return throwError(() => error);

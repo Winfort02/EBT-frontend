@@ -23,7 +23,7 @@ import { User } from '@/models';
 import { Subscription } from 'rxjs';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { UserForm } from '../shared/user-form';
-import { Footer } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 
 @Component({
@@ -50,16 +50,17 @@ import { Footer } from 'primeng/api';
     ConfirmDialogModule,
     Table
 ],
-providers: [DialogService],
+providers: [DialogService, ConfirmationService, MessageService],
   template: `<div class="w-full">
+      <p-toast position="bottom-left"/>
+      <p-confirmdialog key="user-dialog" />
       <p-toolbar styleClass="mb-6">
             <ng-template #start>
-                  <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2"/>
-                  <p-button severity="secondary" label="Delete" icon="pi pi-trash" outlined  />
+                 <label for="user-list" class="text-primary indent-2 font-bold">{{'User List Table' | uppercase }}</label>
             </ng-template>
 
             <ng-template #end>
-                  <p-button label="Export" icon="pi pi-upload" severity="secondary"/>
+                   <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="onCreateUser()"/>
             </ng-template>
       </p-toolbar>
       <app-table [cols]="cols" [actionButton]="actionButton" [showActionBtn]="showActionBtn" [items]="users" (actionBtn)="onActionButtonClick($event)"/>
@@ -67,7 +68,7 @@ providers: [DialogService],
 })
 export class Users implements OnInit, OnDestroy {
       cols = signal<any>([
-            { field: 'name', header: 'Name'},
+            { field: 'displayName', header: 'Name'},
             { field: 'email', header: 'Email'},
             { field: 'role_name', header: 'Role'},
             { field: 'createdAt', header: 'Date Created'},
@@ -87,19 +88,23 @@ export class Users implements OnInit, OnDestroy {
 
       constructor(
             private readonly userService: UserService,
-            private readonly dialogService: DialogService) {}
+            private readonly dialogService: DialogService,
+            private confirmService: ConfirmationService,
+            private messageService: MessageService) {}
 
       ngOnInit(): void { 
+            this.onLoadUsers();
+      }
 
+      onLoadUsers() {
             this.subscriptions = this.userService.getUsers().subscribe(response => {
-                  const user = response?.data as unknown as User[];
-                  const data = user.map((u) => (({
-                        ...u,
-                        role_name: u.role?.role || ''
-                  })));
-                  this.users.set(data);
-            });
-
+            const user = response?.data as unknown as User[];
+            const data = user.map((u) => (({
+                  ...u,
+                  role_name: u.role?.role || ''
+            })));
+            this.users.set(data);
+            })  
       }
 
       ngOnDestroy(): void {
@@ -107,9 +112,44 @@ export class Users implements OnInit, OnDestroy {
       }
 
       onActionButtonClick(event: any) {
+            if (event && event.type == 'delete') {
+                  this.onDelete(event.data.id);
+            } else {
+                  this.dialogRef = this.dialogService.open(UserForm, {
+                        header: 'User Details',
+                        width: '568px',
+                        position: 'top',
+                        modal: true,
+                        closable: true,
+                        contentStyle: { overflow: 'auto' },
+                        breakpoints: {
+                              '960px': '75vw',
+                              '640px': '90vw'
+                        },
+                        data: event?.data ?? null
+                  });
+
+                  this.dialogRef.onClose.subscribe(data => {
+                        if (data) {
+                              const user = {
+                                    email: data?.email ?? null,
+                                    displayName: data?.displayName ?? null,
+                                    id: event?.data?.id ?? null
+                              } as User
+                              this.onUpdateUser(user);
+                        }
+                  });
+            }
+      }
+
+      onUpdateUser(user: User) {
+            this.userService.updateUser(user.id as number, user).subscribe(() => this.onLoadUsers());
+      }
+
+      onCreateUser() {
             this.dialogRef = this.dialogService.open(UserForm, {
                   header: 'User Details',
-                  width: '25vw',
+                  width: '568px',
                   position: 'top',
                   modal: true,
                   closable: true,
@@ -118,30 +158,48 @@ export class Users implements OnInit, OnDestroy {
                         '960px': '75vw',
                         '640px': '90vw'
                   },
-                  data: event?.data ?? null
+                  data: null
             });
 
             this.dialogRef.onClose.subscribe(data => {
-                  if (data) {
-                        const user = {
-                              ...data,
-                              id: event?.data?.id ?? null
-                        } as User
-
-                        console.log(user);
-                        this.onUpdateUser(user);
-                  }
+                 if(data) {
+                  this.userService.createUser(data).subscribe(() => this.onLoadUsers());
+                 }
             });
       }
 
-      onUpdateUser(user: User) {
-            this.userService.updateUser(user.id as number, user).subscribe({
-                  next: (response) => {
-                        console.log(response)
+      onDelete(id: number) {
+            this.confirmService.confirm({
+                  key: "user-dialog",
+                  message: 'Do you want to delete this record?',
+                  header: 'Delete Confirmation',
+                  icon: 'pi pi-info-circle',
+                  position: 'top',
+                  rejectLabel: 'Cancel',
+                  rejectButtonProps: {
+                        label: 'Cancel',
+                        severity: 'secondary',
+                        outlined: true,
                   },
-                  error: (error) => {
-                        console.log(error)
-                  }
-            })
+                  acceptButtonProps: {
+                        label: 'Delete',
+                        severity: 'danger',
+                  },
+                  accept: () => {
+                        this.userService.deleteUser(id).subscribe({
+                              next: () => {
+                                    this.onLoadUsers();
+                                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Record deleted' });
+                              },
+                              error: (error) => {
+                                    console.log(error)
+                                    this.messageService.add({ severity: 'error', summary: 'Rejected', detail: 'Server Error. Please contact your system administrator' });
+                              }
+                        })
+                  },
+                  reject: () => {
+                        this.messageService.add({ severity: 'error', summary: 'Rejected', detail: 'Transaction Cancelled' });
+                  },
+            });
       }
 }

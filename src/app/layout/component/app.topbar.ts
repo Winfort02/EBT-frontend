@@ -1,17 +1,20 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, effect, OnInit, signal } from '@angular/core';
 import { MenuItem } from 'primeng/api';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
 import { CommonService } from '@/services';
 import { User } from '@/models';
+import { PopoverModule } from 'primeng/popover';
+import { MenuModule } from 'primeng/menu';
+import { UserService } from '@/services/user.service';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, PopoverModule, MenuModule],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
             <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -35,7 +38,7 @@ import { User } from '@/models';
                         />
                     </g>
                 </svg>
-                <span>Welcome, {{ user().name }}</span>
+                <span style="width: 20rem;">Welcome, {{ user().displayName }}</span>
             </a>
         </div>
 
@@ -66,37 +69,68 @@ import { User } from '@/models';
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button type="button" class="layout-topbar-action">
+                    <!-- <button type="button" class="layout-topbar-action">
                         <i class="pi pi-calendar"></i>
                         <span>Calendar</span>
                     </button>
                     <button type="button" class="layout-topbar-action">
                         <i class="pi pi-inbox"></i>
                         <span>Messages</span>
-                    </button>
-                    <button type="button" class="layout-topbar-action">
+                    </button> -->
+                    <button type="button" class="layout-topbar-action" (click)="op.toggle($event)">
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
                     </button>
                 </div>
             </div>
+            <p-popover #op>
+                <p-menu [model]="profileItems" />
+            </p-popover>
         </div>
     </div>`
 })
 export class AppTopbar implements OnInit {
     items!: MenuItem[];
+    profileItems!: MenuItem[];
     user = signal<User>(new User());
     constructor(
         public layoutService: LayoutService, 
-        private readonly commonService: CommonService) {}
+        private readonly commonService: CommonService,
+        private readonly userService: UserService,
+        private readonly router: Router) {
+            effect(() => {
+                this.user.set(this.commonService.user as User);
+            });
+        }
 
+    /**
+     * 
+     */
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
     }
 
-    ngOnInit(): void {
-        this.user.set(this.commonService.user);
+    /**
+     * 
+     */
+    ngOnInit(): void { 
+        this.profileItems = [
+            { label: 'Profile', icon: 'pi pi-user' },
+            { label: 'Logout', icon: 'pi pi-cog', command: () => this.onLogout() }
+        ];
+    }
 
-        console.log(this.user());
+    /**
+     * 
+     */
+    onLogout() {
+        this.userService.logout().subscribe({
+            next: () => {
+                this.commonService.clearStorage();
+                setTimeout(() => {
+                    this.router.navigate(['/']);
+                }, 100);
+            }
+        });
     }
 }

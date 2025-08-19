@@ -24,11 +24,9 @@ import { UserService } from '@/services/user.service';
     `
 })
 export class Dashboard implements OnInit {
-    constructor(
-        private readonly userService: UserService) {}
+    constructor() {}
 
     ngOnInit(): void {
-        this.userService.getUsers().subscribe((response) => console.log(response));
     }
     
 }

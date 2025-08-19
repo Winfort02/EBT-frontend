@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
+import { CommonService } from '@/services';
 
 @Component({
     selector: 'app-menu',
@@ -16,6 +17,7 @@ import { AppMenuitem } from './app.menuitem';
     </ul> `
 })
 export class AppMenu {
+    commonService = inject(CommonService);
     model: MenuItem[] = [];
 
     ngOnInit() {
@@ -24,8 +26,8 @@ export class AppMenu {
                 label: 'Master File',
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/application'] },
-                    { label: 'Users', icon: 'pi pi-fw pi-user', routerLink: ['/application/features/users'] },
-                    { label: 'Person', icon: 'pi pi-fw pi-users', routerLink: ['/Person'] }
+                    { label: 'Users', icon: 'pi pi-fw pi-user', routerLink: ['/application/features/users'], visible: this.commonService.isAdmin },
+                    { label: 'Person', icon: 'pi pi-fw pi-users', routerLink: ['/application/features/persons'] }
                 ]
             },
              {

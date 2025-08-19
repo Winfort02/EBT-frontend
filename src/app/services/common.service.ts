@@ -10,7 +10,7 @@ export class CommonService {
    public currentUrl = signal<string>('');
    private prevUrl = signal<string | null>(this.getLocalStorage(storageKeys.previousUrl));
    private accessToken = signal<string | null>(this.getLocalStorage(storageKeys.accessToken));
-   private currentUser = signal<User>(JSON.parse(this.getLocalStorage(storageKeys.currentUser) as string));
+   private currentUser = signal<User | null>(JSON.parse(this.getLocalStorage(storageKeys.currentUser) as string));
 
    constructor(
       private readonly datePipe: DatePipe,
@@ -36,8 +36,14 @@ export class CommonService {
    }
 
    public setCurrentUser(value: User){
-      console.log(value);
       this.setLocalStorage(storageKeys.currentUser, JSON.stringify(value));
+      this.currentUser.set(JSON.parse(this.getLocalStorage(storageKeys.currentUser) as string));
+   }
+
+   public clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      this.currentUser.set(null)
    }
 
    get user() {
@@ -54,6 +60,10 @@ export class CommonService {
 
    get isLogin() {
       return !!this.accessToken();
+   }
+
+   get isAdmin() {
+      return this.currentUser()?.role?.role?.toLowerCase() === 'admin'
    }
 
    formatDate(date: Date, format: string) {

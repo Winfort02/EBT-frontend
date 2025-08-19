@@ -16,6 +16,11 @@ export class UserService {
          private readonly commonService: CommonService
    ) {}
 
+   /**
+    * 
+    * @param data 
+    * @returns 
+    */
    public login(data: { email: string, password: string}) {
       const model = data as unknown as User;
       return this.coreService.httpPost(API_ENDPOINTS.login, model).pipe(
@@ -31,7 +36,19 @@ export class UserService {
          delay(300)
       );
    }
+   
+   /**
+    * 
+    * @returns 
+    */
+   public logout() {
+      return this.coreService.httpPost(API_ENDPOINTS.logout, {} as User).pipe(delay(300));
+   }
 
+   /**
+    * 
+    * @returns 
+    */
    public getUsers() {
       return this.coreService.httpGetRequest(API_ENDPOINTS.users.root).pipe(
          take(1),
@@ -48,7 +65,31 @@ export class UserService {
       );
    }
 
+   /**
+    * 
+    * @param id 
+    * @param data 
+    * @returns 
+    */
    public updateUser(id: number, data: User) {
       return this.coreService.httpPutRequest(API_ENDPOINTS.users.root, id, data);
+   }
+
+   /**
+    * 
+    * @param data 
+    * @returns 
+    */
+   public createUser(data: User) {
+      return this.coreService.httpPost(API_ENDPOINTS.users.root, data);
+   }
+
+   /**
+    * 
+    * @param id 
+    * @returns 
+    */
+   public deleteUser(id: number) {
+      return this.coreService.httpDeleteRequest(API_ENDPOINTS.users.root, id);
    }
 }

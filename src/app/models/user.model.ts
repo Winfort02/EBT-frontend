@@ -4,7 +4,7 @@ export class User {
    id?: number;
    email: string;
    roleId: number;
-   name: string;
+   displayName: string;
    createdAt: Date;
    updatedAt: Date;
    role?: UserRole;
@@ -20,7 +20,7 @@ export class User {
       this.id = id;
       this.email = email;
       this.roleId = roleId;
-      this.name = displayName;
+      this.displayName = displayName;
       this.createdAt = createdAt;
       this.updatedAt = updatedAt;
    }

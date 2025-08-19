@@ -54,6 +54,6 @@ export class CoreService<Model> {
     * @returns 
     */
    httpDeleteRequest(endpoint: string, id: number) {
-      return this.http.delete<Model>(`${endpoint}/${id}`);
+      return this.http.delete<Model>(`${BASE_ULR}/${endpoint}/${id}`);
    }
 }
